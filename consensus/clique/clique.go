@@ -53,7 +53,7 @@ const (
 	inmemorySnapshots  = 128  // Number of recent vote snapshots to keep in memory
 	inmemorySignatures = 4096 // Number of recent block signatures to keep in memory
 
-	wiggleTime = 100 * time.Millisecond // Random delay (per signer) to allow concurrent signers
+	wiggleTime = 1 * time.Millisecond // Random delay (per signer) to allow concurrent signers
 )
 
 // Clique proof-of-authority protocol constants.
@@ -68,7 +68,7 @@ var (
 
 	uncleHash = types.CalcUncleHash(nil) // Always Keccak256(RLP([])) as uncles are meaningless outside of PoW.
 
-	diffInTurn = big.NewInt(2) // Block difficulty for in-turn signatures
+	diffInTurn = big.NewInt(7) // Block difficulty for in-turn signatures
 	diffNoTurn = big.NewInt(1) // Block difficulty for out-of-turn signatures
 
 	blockSizeGaugeName = "clique/block_size_in_bytes"
@@ -497,7 +497,7 @@ func (c *Clique) verifySeal(snap *Snapshot, header *types.Header, parents []*typ
 	for seen, recent := range snap.Recents {
 		if recent == signer {
 			// Signer is among recents, only fail if the current block doesn't shift it out
-			if limit := uint64(len(snap.Signers) / 2); seen > number-limit {
+			if limit := uint64(len(snap.Signers)/2 + 1); seen > number-limit {
 				return errRecentlySigned
 			}
 		}
@@ -653,7 +653,7 @@ func (c *Clique) Seal(chain consensus.ChainHeaderReader, block *types.Block, res
 	for seen, recent := range snap.Recents {
 		if recent == signer {
 			// Signer is among recents, only wait if the current block doesn't shift it out
-			if limit := uint64(len(snap.Signers) / 2); number < limit || seen > number-limit {
+			if limit := uint64(len(snap.Signers)/2 + 1); number < limit || seen > number-limit {
 				return errors.New("signed recently, must wait for others")
 			}
 		}
@@ -662,7 +662,7 @@ func (c *Clique) Seal(chain consensus.ChainHeaderReader, block *types.Block, res
 	delay := time.UnixMilli(int64(header.Time)).Sub(time.Now()) // nolint: gosimple
 	if header.Difficulty.Cmp(diffNoTurn) == 0 {
 		// It's not our turn explicitly to sign, delay it a bit
-		wiggle := time.Duration(len(snap.Signers)/2) * wiggleTime
+		wiggle := time.Duration(len(snap.Signers)/2+1) * wiggleTime
 		delay += time.Duration(rand.Int63n(int64(wiggle)))
 
 		log.Trace("Out-of-turn signing requested", "wiggle", common.PrettyDuration(wiggle))
