@@ -81,19 +81,23 @@ func (f *ForkChoice) ReorgNeeded(current *types.Header, extern *types.Header) (b
 		externTd = f.chain.GetTd(extern.Hash(), extern.Number.Uint64())
 	)
 	if localTD == nil || externTd == nil {
+		log.Error("Missing total difficulty", "localTD", localTD, "externTd", externTd)
 		return false, errors.New("missing td")
 	}
 	// Accept the new header as the chain head if the transition
 	// is already triggered. We assume all the headers after the
 	// transition come from the trusted consensus layer.
 	if ttd := f.chain.Config().TerminalTotalDifficulty; ttd != nil && ttd.Cmp(externTd) <= 0 {
+		log.Info("Transition triggered, accepting new header", "ttd", ttd, "externTd", externTd)
 		return true, nil
 	}
 
 	// If the total difficulty is higher than our known, add it to the canonical chain
 	if diff := externTd.Cmp(localTD); diff > 0 {
+		log.Info("External total difficulty is higher, reorg needed", "externTd", externTd, "localTD", localTD)
 		return true, nil
 	} else if diff < 0 {
+		log.Info("Local total difficulty is higher, no reorg needed", "externTd", externTd, "localTD", localTD)
 		return false, nil
 	}
 	// Local and external difficulty is identical.
@@ -102,11 +106,15 @@ func (f *ForkChoice) ReorgNeeded(current *types.Header, extern *types.Header) (b
 	reorg := false
 	externNum, localNum := extern.Number.Uint64(), current.Number.Uint64()
 	if externNum < localNum {
+		log.Info("External block number is lower, reorg needed", "externNum", externNum, "localNum", localNum)
 		reorg = true
 	} else if externNum == localNum {
 		// Adds deterministic fork choice based on attributes of the block signature, which itself encodes randomness
 		if bytes.Compare(extern.Extra, current.Extra) > 0 {
+			log.Info("External block number is equal, but extra data is higher, reorg needed", "externExtra", extern.Extra, "localExtra", current.Extra)
 			reorg = true
+		} else {
+			log.Info("External block number is equal, and extra data is not higher, no reorg needed", "externExtra", extern.Extra, "localExtra", current.Extra)
 		}
 	}
 	return reorg, nil
