@@ -17,6 +17,7 @@
 package core
 
 import (
+	"bytes"
 	crand "crypto/rand"
 	"errors"
 	"math/big"
@@ -103,11 +104,10 @@ func (f *ForkChoice) ReorgNeeded(current *types.Header, extern *types.Header) (b
 	if externNum < localNum {
 		reorg = true
 	} else if externNum == localNum {
-		var currentPreserve, externPreserve bool
-		if f.preserve != nil {
-			currentPreserve, externPreserve = f.preserve(current), f.preserve(extern)
+		// Adds deterministic fork choice based on attributes of the block signature, which itself encodes randomness
+		if bytes.Compare(extern.Extra, current.Extra) > 0 {
+			reorg = true
 		}
-		reorg = !currentPreserve && (externPreserve || f.rand.Float64() < 0.5)
 	}
 	return reorg, nil
 }
