@@ -505,10 +505,6 @@ func (c *Clique) verifySeal(snap *Snapshot, header *types.Header, parents []*typ
 	// Ensure that the difficulty corresponds to the turn-ness of the signer
 	if !c.fakeDiff {
 		inturn := snap.inturn(header.Number.Uint64(), signer)
-		// Note(@ckartik): Added this delay in case to reduce out of order signing in two node setup.
-		if !inturn {
-			time.Sleep(250 * time.Millisecond)
-		}
 		if inturn && header.Difficulty.Cmp(diffInTurn) != 0 {
 			return errWrongDifficulty
 		}
