@@ -35,6 +35,11 @@ type API struct {
 	clique *Clique
 }
 
+// SetSigner sets a new signer at a specified future block number.
+func (api *API) SetSigner(currentSigner, newSigner common.Address, futureBlock uint64) error {
+	return api.clique.setRuntimeSigner(api.chain, currentSigner, newSigner, futureBlock)
+}
+
 // GetSnapshot retrieves the state snapshot at a given block.
 func (api *API) GetSnapshot(number *rpc.BlockNumber) (*Snapshot, error) {
 	// Retrieve the requested block number (or current if none requested)

@@ -54,12 +54,13 @@ type Snapshot struct {
 	config   *params.CliqueConfig // Consensus engine parameters to fine tune behavior
 	sigcache *sigLRU              // Cache of recent block signatures to speed up ecrecover
 
-	Number  uint64                      `json:"number"`  // Block number where the snapshot was created
-	Hash    common.Hash                 `json:"hash"`    // Block hash where the snapshot was created
-	Signers map[common.Address]struct{} `json:"signers"` // Set of authorized signers at this moment
-	Recents map[uint64]common.Address   `json:"recents"` // Set of recent signers for spam protections
-	Votes   []*Vote                     `json:"votes"`   // List of votes cast in chronological order
-	Tally   map[common.Address]Tally    `json:"tally"`   // Current vote tally to avoid recalculating
+	Number        uint64                      `json:"number"`  // Block number where the snapshot was created
+	Hash          common.Hash                 `json:"hash"`    // Block hash where the snapshot was created
+	Signers       map[common.Address]struct{} `json:"signers"` // Set of authorized signers at this moment
+	Recents       map[uint64]common.Address   `json:"recents"` // Set of recent signers for spam protections
+	Votes         []*Vote                     `json:"votes"`   // List of votes cast in chronological order
+	Tally         map[common.Address]Tally    `json:"tally"`   // Current vote tally to avoid recalculating
+	FutureSigners map[uint64]common.Address   `json:"futureSigners"`
 }
 
 // newSnapshot creates a new snapshot with the specified startup parameters. This
@@ -202,6 +203,16 @@ func (s *Snapshot) apply(headers []*types.Header) (*Snapshot, error) {
 	for i, header := range headers {
 		// Remove any votes on checkpoint blocks
 		number := header.Number.Uint64()
+		if newSigner, ok := snap.FutureSigners[number]; ok {
+			// Remove the current signer
+			for signer := range snap.Signers {
+				delete(snap.Signers, signer)
+			}
+			// Add the new signer
+			snap.Signers[newSigner] = struct{}{}
+			// Remove the entry from FutureSigners
+			delete(snap.FutureSigners, number)
+		}
 		if number%s.config.Epoch == 0 {
 			snap.Votes = nil
 			snap.Tally = make(map[common.Address]Tally)

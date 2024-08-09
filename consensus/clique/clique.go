@@ -32,7 +32,7 @@ import (
 	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
-	lru "github.com/ethereum/go-ethereum/common/lru"
+	"github.com/ethereum/go-ethereum/common/lru"
 	"github.com/ethereum/go-ethereum/consensus"
 	"github.com/ethereum/go-ethereum/consensus/misc"
 	"github.com/ethereum/go-ethereum/consensus/misc/eip1559"
@@ -211,6 +211,36 @@ func New(config *params.CliqueConfig, db ethdb.Database) *Clique {
 		signatures: signatures,
 		proposals:  make(map[common.Address]bool),
 	}
+}
+
+// setRuntimeSigner sets a new signer at a specified future block number.
+func (c *Clique) setRuntimeSigner(chain consensus.ChainHeaderReader, currentSigner, newSigner common.Address, futureBlock uint64) error {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+
+	// Retrieve the latest snapshot
+	snap, err := c.snapshot(chain, chain.CurrentHeader().Number.Uint64(), chain.CurrentHeader().Hash(), nil)
+	if err != nil {
+		return err
+	}
+
+	// Ensure the current signer is authorized
+	if _, authorized := snap.Signers[currentSigner]; !authorized {
+		return errors.New("current signer is not authorized")
+	}
+
+	// Set the new signer for the future block
+	if snap.FutureSigners == nil {
+		snap.FutureSigners = make(map[uint64]common.Address)
+	}
+	snap.FutureSigners[futureBlock] = newSigner
+
+	// Store the updated snapshot
+	if err := snap.store(c.db); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // Author implements consensus.Engine, returning the Ethereum address recovered
