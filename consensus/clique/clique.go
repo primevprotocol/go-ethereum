@@ -497,7 +497,7 @@ func (c *Clique) verifySeal(snap *Snapshot, header *types.Header, parents []*typ
 	for seen, recent := range snap.Recents {
 		if recent == signer {
 			// Signer is among recents, only fail if the current block doesn't shift it out
-			if limit := uint64(len(snap.Signers)/2 + 1); seen > number-limit {
+			if limit := uint64(len(snap.Signers) / 2); seen > number-limit {
 				return errRecentlySigned
 			}
 		}
@@ -505,6 +505,10 @@ func (c *Clique) verifySeal(snap *Snapshot, header *types.Header, parents []*typ
 	// Ensure that the difficulty corresponds to the turn-ness of the signer
 	if !c.fakeDiff {
 		inturn := snap.inturn(header.Number.Uint64(), signer)
+		// Note(@ckartik): Added this delay in case to reduce out of order signing in two node setup.
+		if !inturn {
+			time.Sleep(250 * time.Millisecond)
+		}
 		if inturn && header.Difficulty.Cmp(diffInTurn) != 0 {
 			return errWrongDifficulty
 		}
@@ -653,7 +657,7 @@ func (c *Clique) Seal(chain consensus.ChainHeaderReader, block *types.Block, res
 	for seen, recent := range snap.Recents {
 		if recent == signer {
 			// Signer is among recents, only wait if the current block doesn't shift it out
-			if limit := uint64(len(snap.Signers)/2 + 1); number < limit || seen > number-limit {
+			if limit := uint64(len(snap.Signers) / 2); number < limit || seen > number-limit {
 				return errors.New("signed recently, must wait for others")
 			}
 		}
