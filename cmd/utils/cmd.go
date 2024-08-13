@@ -262,7 +262,7 @@ func ImportHistory(chain *core.BlockChain, db ethdb.Database, dir string, networ
 		start    = time.Now()
 		reported = time.Now()
 		imported = 0
-		forker   = core.NewForkChoice(chain, nil)
+		forker   = core.NewForkChoiceEIP3436(chain, nil)
 		h        = sha256.New()
 		buf      = bytes.NewBuffer(nil)
 	)
