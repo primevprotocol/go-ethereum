@@ -90,16 +90,24 @@ func (f *ForkChoiceEIP3436) ReorgNeeded(current *types.Header, extern *types.Hea
 	// Rule 3: Choose the block whose validator had the least recent in-turn block assignment.
 	// (header_number - validator_index) % validator_count
 	// TODO(@ckartik): Figure out how to get the validator count and most recent in-turn block assignment
-	validatorCount := f.chain.Config().Clique.Validators
-	currentValidatorIndex := int(current.Coinbase.Big().Int64()) % validatorCount
-	externValidatorIndex := int(extern.Coinbase.Big().Int64()) % validatorCount
+	// Any approach that's implemented here will need to be benchmarked for performance.
+	// Maybe we can having a running tally of the most recent in-turn block assignment for each validator
+	// TODO: Implement a method to get the validator count and validator index
+	validatorCount := uint64(1) // Placeholder, needs to be implemented
+	getValidatorIndex := func(header *types.Header) uint64 {
+		// TODO: Implement logic to get validator index
+		return 0 // Placeholder
+	}
 
-	currentInTurn := (current.Number.Uint64() - uint64(currentValidatorIndex)) % uint64(validatorCount)
-	externInTurn := (extern.Number.Uint64() - uint64(externValidatorIndex)) % uint64(validatorCount)
+	currentValidatorIndex := getValidatorIndex(current)
+	externValidatorIndex := getValidatorIndex(extern)
 
-	if currentInTurn > externInTurn {
+	currentInTurn := (current.Number.Uint64() - currentValidatorIndex) % validatorCount
+	externInTurn := (extern.Number.Uint64() - externValidatorIndex) % validatorCount
+
+	if currentInTurn < externInTurn {
 		return false, nil
-	} else if currentInTurn < externInTurn {
+	} else if currentInTurn > externInTurn {
 		return true, nil
 	}
 
