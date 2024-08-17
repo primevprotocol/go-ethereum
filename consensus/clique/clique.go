@@ -502,16 +502,16 @@ func (c *Clique) verifySeal(snap *Snapshot, header *types.Header, parents []*typ
 			}
 		}
 	}
-	// Ensure that the difficulty corresponds to the turn-ness of the signer
-	if !c.fakeDiff {
-		inturn := snap.inturn(header.Number.Uint64(), signer)
-		if inturn && header.Difficulty.Cmp(diffInTurn) != 0 {
-			return errWrongDifficulty
-		}
-		if !inturn && header.Difficulty.Cmp(diffNoTurn) != 0 {
-			return errWrongDifficulty
-		}
-	}
+	// // Ensure that the difficulty corresponds to the hash fo the block
+	// if !c.fakeDiff {
+	// 	inturn := snap.inturn(header.Number.Uint64(), signer)
+	// 	if inturn && header.Difficulty.Cmp(diffInTurn) != 0 {
+	// 		return errWrongDifficulty
+	// 	}
+	// 	if !inturn && header.Difficulty.Cmp(diffNoTurn) != 0 {
+	// 		return errWrongDifficulty
+	// 	}
+	// }
 	return nil
 }
 
@@ -553,7 +553,7 @@ func (c *Clique) Prepare(chain consensus.ChainHeaderReader, header *types.Header
 	c.lock.RUnlock()
 
 	// Set the correct difficulty
-	header.Difficulty = calcDifficulty(snap, signer)
+	header.Difficulty = calcDifficulty(snap, signer, header.ParentHash)
 
 	// Ensure the extra data has all its components
 	if len(header.Extra) < extraVanity {
@@ -705,14 +705,18 @@ func (c *Clique) CalcDifficulty(chain consensus.ChainHeaderReader, time uint64, 
 	c.lock.RLock()
 	signer := c.signer
 	c.lock.RUnlock()
-	return calcDifficulty(snap, signer)
+	return calcDifficulty(snap, signer, parent.Hash())
 }
 
-func calcDifficulty(snap *Snapshot, signer common.Address) *big.Int {
-	if snap.inturn(snap.Number+1, signer) {
-		return new(big.Int).Set(diffInTurn)
-	}
-	return new(big.Int).Set(diffNoTurn)
+func calcDifficulty(snap *Snapshot, signer common.Address, parentHash common.Hash) *big.Int {
+	// Calculate difficulty based on the concatenation of parentHash and signer
+	data := append(parentHash.Bytes(), signer.Bytes()...)
+	hash := crypto.Keccak256(data)
+
+	// Convert the first 8 bytes of the hash to a big.Int
+	difficulty := new(big.Int).SetBytes(hash[:])
+
+	return difficulty.Abs(difficulty)
 }
 
 // SealHash returns the hash of a block prior to it being sealed.
