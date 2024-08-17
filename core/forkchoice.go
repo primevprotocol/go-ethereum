@@ -41,8 +41,9 @@ type ChainReader interface {
 }
 
 type ForkChoiceEIP3436 struct {
-	chain ChainReader
-	rand  *mrand.Rand
+	chain    ChainReader
+	rand     *mrand.Rand
+	snapshot *Snapshot // Snapshot of the current validator set
 
 	// legacy remenant from old forkchoice
 	preserve func(header *types.Header) bool
@@ -93,11 +94,12 @@ func (f *ForkChoiceEIP3436) ReorgNeeded(current *types.Header, extern *types.Hea
 	// Any approach that's implemented here will need to be benchmarked for performance.
 	// Maybe we can having a running tally of the most recent in-turn block assignment for each validator
 	// TODO: Implement a method to get the validator count and validator index
-	validatorCount := uint64(1) // Placeholder, needs to be implemented
+	validatorCount := uint64(3) // Placeholder, needs to be implemented
 	getValidatorIndex := func(header *types.Header) uint64 {
 		// TODO: Implement logic to get validator index
 		return 0 // Placeholder
 	}
+	// Need access to the snapshot to get the validator index
 
 	currentValidatorIndex := getValidatorIndex(current)
 	externValidatorIndex := getValidatorIndex(extern)
