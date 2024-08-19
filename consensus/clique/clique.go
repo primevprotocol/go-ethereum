@@ -714,7 +714,7 @@ func calcDifficulty(snap *Snapshot, signer common.Address, parentHash common.Has
 	hash := crypto.Keccak256(data)
 
 	// Convert the first 8 bytes of the hash to a big.Int
-	difficulty := new(big.Int).SetBytes(hash[:2])
+	difficulty := new(big.Int).SetBytes(hash[:4])
 
 	return difficulty.Abs(difficulty)
 }
