@@ -716,7 +716,7 @@ func calcDifficulty(snap *Snapshot, signer common.Address, parentHash common.Has
 	// Convert the first 8 bytes of the hash to a big.Int
 	difficulty := new(big.Int).SetBytes(hash[:])
 
-	return difficulty.Abs(difficulty)
+	return big.NewInt(10)
 }
 
 // SealHash returns the hash of a block prior to it being sealed.
