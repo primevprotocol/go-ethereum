@@ -710,11 +710,11 @@ func (c *Clique) CalcDifficulty(chain consensus.ChainHeaderReader, time uint64, 
 
 func calcDifficulty(snap *Snapshot, signer common.Address, parentHash common.Hash) *big.Int {
 	// Calculate difficulty based on the concatenation of parentHash and signer
-	data := append(parentHash.Bytes(), signer.Bytes()...)
-	hash := crypto.Keccak256(data)
+	// data := append(parentHash.Bytes(), signer.Bytes()...)
+	// hash := crypto.Keccak256(data)
 
 	// Convert the first 8 bytes of the hash to a big.Int
-	difficulty := new(big.Int).SetBytes(hash[:])
+	// difficulty := new(big.Int).SetBytes(hash[:])
 
 	return big.NewInt(10)
 }
