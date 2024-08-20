@@ -1251,10 +1251,10 @@ func (d *Downloader) fillHeaderSkeleton(from uint64, skeleton []*types.Header) (
 // available peers, reserving a chunk of blocks for each, waiting for delivery
 // and also periodically checking for timeouts.
 func (d *Downloader) fetchBodies(from uint64, beaconMode bool) error {
-	log.Debug("Downloading block bodies", "origin", from)
+	log.Info("Downloading block bodies", "origin", from)
 	err := d.concurrentFetch((*bodyQueue)(d), beaconMode)
 
-	log.Debug("Block body download terminated", "err", err)
+	log.Info("Block body download terminated", "err", err)
 	return err
 }
 
@@ -1262,10 +1262,10 @@ func (d *Downloader) fetchBodies(from uint64, beaconMode bool) error {
 // available peers, reserving a chunk of receipts for each, waiting for delivery
 // and also periodically checking for timeouts.
 func (d *Downloader) fetchReceipts(from uint64, beaconMode bool) error {
-	log.Debug("Downloading receipts", "origin", from)
+	log.Info("Downloading receipts", "origin", from)
 	err := d.concurrentFetch((*receiptQueue)(d), beaconMode)
 
-	log.Debug("Receipt download terminated", "err", err)
+	log.Info("Receipt download terminated", "err", err)
 	return err
 }
 
