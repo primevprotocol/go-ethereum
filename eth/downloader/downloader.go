@@ -1010,8 +1010,8 @@ func (d *Downloader) findAncestorBinarySearch(p *peerConnection, mode SyncMode, 
 // can fill in the skeleton - not even the origin peer - it's assumed invalid and
 // the origin is dropped.
 func (d *Downloader) fetchHeaders(p *peerConnection, from uint64, head uint64) error {
-	p.log.Debug("Directing header downloads", "origin", from)
-	defer p.log.Debug("Header download terminated")
+	p.log.Info("Directing header downloads", "origin", from)
+	defer p.log.Info("Header download terminated")
 
 	// Start pulling the header chain skeleton until all is done
 	var (
@@ -1115,7 +1115,7 @@ func (d *Downloader) fetchHeaders(p *peerConnection, from uint64, head uint64) e
 				p.log.Warn("Peer withheld skeleton headers", "advertised", head, "withheld", from+uint64(MaxHeaderFetch)-1)
 				return fmt.Errorf("%w: withheld skeleton headers: advertised %d, withheld #%d", errStallingPeer, head, from+uint64(MaxHeaderFetch)-1)
 			}
-			p.log.Debug("No skeleton, fetching headers directly")
+			p.log.Info("No skeleton, fetching headers directly")
 			skeleton = false
 			continue
 		}
@@ -1123,7 +1123,7 @@ func (d *Downloader) fetchHeaders(p *peerConnection, from uint64, head uint64) e
 		if len(headers) == 0 {
 			// Don't abort header fetches while the pivot is downloading
 			if !d.committed.Load() && pivot <= from {
-				p.log.Debug("No headers, waiting for pivot commit")
+				p.log.Info("No headers, waiting for pivot commit")
 				select {
 				case <-time.After(fsHeaderContCheck):
 					continue
@@ -1132,7 +1132,7 @@ func (d *Downloader) fetchHeaders(p *peerConnection, from uint64, head uint64) e
 				}
 			}
 			// Pivot done (or not in snap sync) and no more headers, terminate the process
-			p.log.Debug("No more headers available")
+			p.log.Info("No more headers available")
 			select {
 			case d.headerProcCh <- nil:
 				return nil
@@ -1145,7 +1145,7 @@ func (d *Downloader) fetchHeaders(p *peerConnection, from uint64, head uint64) e
 		if skeleton {
 			filled, hashset, proced, err := d.fillHeaderSkeleton(from, headers)
 			if err != nil {
-				p.log.Debug("Skeleton chain invalid", "err", err)
+				p.log.Info("Skeleton chain invalid", "err", err)
 				return fmt.Errorf("%w: %v", errInvalidChain, err)
 			}
 			headers = filled[proced:]
