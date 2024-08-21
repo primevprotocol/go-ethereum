@@ -2397,11 +2397,13 @@ func (bc *BlockChain) skipBlock(err error, it *insertIterator) bool {
 	// is ErrKnownBlock, which means all checks passed, but we already have the block
 	// and state.
 	if !errors.Is(err, ErrKnownBlock) {
+		log.Info("Block cannot be skipped: not a known block", "err", err)
 		return false
 	}
 	// If we're not using snapshots, we can skip this, since we have both block
 	// and (trie-) state
 	if bc.snaps == nil {
+		log.Info("Skipping block: snapshots not in use")
 		return true
 	}
 	var (
@@ -2410,6 +2412,7 @@ func (bc *BlockChain) skipBlock(err error, it *insertIterator) bool {
 	)
 	// If we also have the snapshot-state, we can skip the processing.
 	if bc.snaps.Snapshot(header.Root) != nil {
+		log.Info("Skipping block: snapshot state exists", "number", header.Number, "hash", header.Hash())
 		return true
 	}
 	// In this case, we have the trie-state but not snapshot-state. If the parent
@@ -2422,12 +2425,15 @@ func (bc *BlockChain) skipBlock(err error, it *insertIterator) bool {
 		parentRoot = parent.Root
 	}
 	if parentRoot == (common.Hash{}) {
+		log.Info("Block cannot be skipped: parent root not found", "number", header.Number, "hash", header.Hash())
 		return false // Theoretically impossible case
 	}
 	// Parent is also missing snapshot: we can skip this. Otherwise process.
 	if bc.snaps.Snapshot(parentRoot) == nil {
+		log.Info("Skipping block: parent snapshot missing", "number", header.Number, "hash", header.Hash(), "parent", header.ParentHash)
 		return true
 	}
+	log.Info("Block cannot be skipped: parent snapshot exists", "number", header.Number, "hash", header.Hash(), "parent", header.ParentHash)
 	return false
 }
 
