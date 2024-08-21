@@ -1560,7 +1560,7 @@ func (bc *BlockChain) insertChain(chain types.Blocks, setHead bool) (int, error)
 
 	var (
 		stats     = insertStats{startTime: mclock.Now()}
-		lastCanon *types.Block
+		lastCanon *types.Block // represents the last block that is known to be canonical
 	)
 	// Fire a single chain head event if we've progressed the chain
 	defer func() {
@@ -1572,8 +1572,18 @@ func (bc *BlockChain) insertChain(chain types.Blocks, setHead bool) (int, error)
 	headers := make([]*types.Header, len(chain))
 	for i, block := range chain {
 		headers[i] = block.Header()
+		log.Info("Getting ready to verify header",
+			"index", i,
+			"number", block.Number(),
+			"hash", block.Hash(),
+			"parent", block.ParentHash(),
+			"timestamp", block.Time(),
+			"difficulty", block.Difficulty(),
+		)
 	}
+
 	abort, results := bc.engine.VerifyHeaders(bc, headers)
+
 	defer close(abort)
 
 	// Peek the error for the first block to decide the directing import logic
@@ -1606,7 +1616,7 @@ func (bc *BlockChain) insertChain(chain types.Blocks, setHead bool) (int, error)
 					break
 				}
 			}
-			log.Debug("Ignoring already known block", "number", block.Number(), "hash", block.Hash())
+			log.Info("Ignoring already known block", "number", block.Number(), "hash", block.Hash())
 			stats.ignored++
 
 			block, err = it.next()
@@ -2104,6 +2114,8 @@ func (bc *BlockChain) collectLogs(b *types.Block, removed bool) []*types.Log {
 // Note the new head block won't be processed here, callers need to handle it
 // externally.
 func (bc *BlockChain) reorg(oldHead *types.Header, newHead *types.Block) error {
+	log.Info("Starting blockchain reorganization", "oldHead", oldHead.Number, "oldHash", oldHead.Hash(), "newHead", newHead.Number(), "newHash", newHead.Hash())
+
 	var (
 		newChain    types.Blocks
 		oldChain    types.Blocks
@@ -2114,37 +2126,49 @@ func (bc *BlockChain) reorg(oldHead *types.Header, newHead *types.Block) error {
 	)
 	oldBlock := bc.GetBlock(oldHead.Hash(), oldHead.Number.Uint64())
 	if oldBlock == nil {
+		log.Error("Current head block missing during reorg", "number", oldHead.Number, "hash", oldHead.Hash())
 		return errors.New("current head block missing")
 	}
 	newBlock := newHead
 
+	log.Info("Comparing chain lengths", "oldChainHead", oldBlock.NumberU64(), "newChainHead", newBlock.NumberU64())
+
 	// Reduce the longer chain to the same number as the shorter one
 	if oldBlock.NumberU64() > newBlock.NumberU64() {
+		log.Info("Old chain is longer, gathering transactions and logs to be removed")
 		// Old chain is longer, gather all transactions and logs as deleted ones
 		for ; oldBlock != nil && oldBlock.NumberU64() != newBlock.NumberU64(); oldBlock = bc.GetBlock(oldBlock.ParentHash(), oldBlock.NumberU64()-1) {
 			oldChain = append(oldChain, oldBlock)
 			for _, tx := range oldBlock.Transactions() {
 				deletedTxs = append(deletedTxs, tx.Hash())
 			}
+			log.Info("Added block to old chain", "number", oldBlock.NumberU64(), "hash", oldBlock.Hash())
 		}
 	} else {
+		log.Info("New chain is longer, stashing blocks for insertion")
 		// New chain is longer, stash all blocks away for subsequent insertion
 		for ; newBlock != nil && newBlock.NumberU64() != oldBlock.NumberU64(); newBlock = bc.GetBlock(newBlock.ParentHash(), newBlock.NumberU64()-1) {
 			newChain = append(newChain, newBlock)
+			log.Info("Stashed block for new chain", "number", newBlock.NumberU64(), "hash", newBlock.Hash())
 		}
 	}
 	if oldBlock == nil {
+		log.Error("Invalid old chain detected during reorg")
 		return errInvalidOldChain
 	}
 	if newBlock == nil {
+		log.Error("Invalid new chain detected during reorg")
 		return errInvalidNewChain
 	}
+
+	log.Info("Searching for common ancestor")
 	// Both sides of the reorg are at the same number, reduce both until the common
 	// ancestor is found
 	for {
 		// If the common ancestor was found, bail out
 		if oldBlock.Hash() == newBlock.Hash() {
 			commonBlock = oldBlock
+			log.Info("Common ancestor found", "number", commonBlock.NumberU64(), "hash", commonBlock.Hash())
 			break
 		}
 		// Remove an old block as well as stash away a new block
@@ -2154,13 +2178,17 @@ func (bc *BlockChain) reorg(oldHead *types.Header, newHead *types.Block) error {
 		}
 		newChain = append(newChain, newBlock)
 
+		log.Info("Stepping back in both chains", "oldNumber", oldBlock.NumberU64(), "oldHash", oldBlock.Hash(), "newNumber", newBlock.NumberU64(), "newHash", newBlock.Hash())
+
 		// Step back with both chains
 		oldBlock = bc.GetBlock(oldBlock.ParentHash(), oldBlock.NumberU64()-1)
 		if oldBlock == nil {
+			log.Error("Invalid old chain detected while stepping back")
 			return errInvalidOldChain
 		}
 		newBlock = bc.GetBlock(newBlock.ParentHash(), newBlock.NumberU64()-1)
 		if newBlock == nil {
+			log.Error("Invalid new chain detected while stepping back")
 			return errInvalidNewChain
 		}
 	}
@@ -2193,12 +2221,14 @@ func (bc *BlockChain) reorg(oldHead *types.Header, newHead *types.Block) error {
 	// weird scenario that canonical chain is changed while the
 	// stale lookups are still cached.
 	bc.txLookupCache.Purge()
+	log.Info("Transaction lookup cache purged")
 
 	// Insert the new chain(except the head block(reverse order)),
 	// taking care of the proper incremental order.
 	for i := len(newChain) - 1; i >= 1; i-- {
 		// Insert the block in the canonical way, re-writing history
 		bc.writeHeadBlock(newChain[i])
+		log.Info("Inserted new block in canonical chain", "number", newChain[i].NumberU64(), "hash", newChain[i].Hash())
 
 		// Collect the new added transactions.
 		for _, tx := range newChain[i].Transactions() {
@@ -2215,6 +2245,8 @@ func (bc *BlockChain) reorg(oldHead *types.Header, newHead *types.Block) error {
 	for _, tx := range diffs {
 		rawdb.DeleteTxLookupEntry(indexesBatch, tx)
 	}
+	log.Info("Deleted useless transaction lookup entries", "count", len(diffs))
+
 	// Delete all hash markers that are not part of the new canonical chain.
 	// Because the reorg function does not handle new chain head, all hash
 	// markers greater than or equal to new chain head should be deleted.
@@ -2228,10 +2260,13 @@ func (bc *BlockChain) reorg(oldHead *types.Header, newHead *types.Block) error {
 			break
 		}
 		rawdb.DeleteCanonicalHash(indexesBatch, i)
+		log.Info("Deleted non-canonical hash marker", "number", i, "hash", hash)
 	}
 	if err := indexesBatch.Write(); err != nil {
 		log.Crit("Failed to delete useless indexes", "err", err)
 	}
+
+	log.Info("Starting to process logs from old and new chains")
 
 	// Send out events for logs from the old canon chain, and 'reborn'
 	// logs from the new canon chain. The number of logs can be very
@@ -2242,6 +2277,7 @@ func (bc *BlockChain) reorg(oldHead *types.Header, newHead *types.Block) error {
 	for i := len(oldChain) - 1; i >= 0; i-- {
 		// Also send event for blocks removed from the canon chain.
 		bc.chainSideFeed.Send(ChainSideEvent{Block: oldChain[i]})
+		log.Info("Sent chain side event for removed block", "number", oldChain[i].NumberU64(), "hash", oldChain[i].Hash())
 
 		// Collect deleted logs for notification
 		if logs := bc.collectLogs(oldChain[i], true); len(logs) > 0 {
@@ -2249,11 +2285,13 @@ func (bc *BlockChain) reorg(oldHead *types.Header, newHead *types.Block) error {
 		}
 		if len(deletedLogs) > 512 {
 			bc.rmLogsFeed.Send(RemovedLogsEvent{deletedLogs})
+			log.Info("Sent batch of removed logs", "count", len(deletedLogs))
 			deletedLogs = nil
 		}
 	}
 	if len(deletedLogs) > 0 {
 		bc.rmLogsFeed.Send(RemovedLogsEvent{deletedLogs})
+		log.Info("Sent final batch of removed logs", "count", len(deletedLogs))
 	}
 
 	// New logs:
@@ -2264,12 +2302,16 @@ func (bc *BlockChain) reorg(oldHead *types.Header, newHead *types.Block) error {
 		}
 		if len(rebirthLogs) > 512 {
 			bc.logsFeed.Send(rebirthLogs)
+			log.Info("Sent batch of new logs", "count", len(rebirthLogs))
 			rebirthLogs = nil
 		}
 	}
 	if len(rebirthLogs) > 0 {
 		bc.logsFeed.Send(rebirthLogs)
+		log.Info("Sent final batch of new logs", "count", len(rebirthLogs))
 	}
+
+	log.Info("Blockchain reorganization completed", "oldHead", oldHead.Number, "oldHash", oldHead.Hash(), "newHead", newHead.Number(), "newHash", newHead.Hash())
 	return nil
 }
 
