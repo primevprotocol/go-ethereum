@@ -206,7 +206,7 @@ func (p *Peer) AsyncSendTransactions(hashes []common.Hash) {
 		// Mark all the transactions as known, but ensure we don't overflow our limits
 		p.knownTxs.Add(hashes...)
 	case <-p.term:
-		p.Log().Debug("Dropping transaction propagation", "count", len(hashes))
+		p.Log().Info("Dropping transaction propagation", "count", len(hashes))
 	}
 }
 
@@ -244,7 +244,7 @@ func (p *Peer) AsyncSendPooledTransactionHashes(hashes []common.Hash) {
 		// Mark all the transactions as known, but ensure we don't overflow our limits
 		p.knownTxs.Add(hashes...)
 	case <-p.term:
-		p.Log().Debug("Dropping transaction announcement", "count", len(hashes))
+		p.Log().Info("Dropping transaction announcement", "count", len(hashes))
 	}
 }
 
@@ -271,6 +271,9 @@ func (p *Peer) SendNewBlockHashes(hashes []common.Hash, numbers []uint64) error 
 		request[i].Hash = hashes[i]
 		request[i].Number = numbers[i]
 	}
+
+	p.Log().Info("Sending new block hashes", "peer", p.ID(), "hashes", hashes, "numbers", numbers)
+
 	return p2p.Send(p.rw, NewBlockHashesMsg, request)
 }
 
@@ -278,12 +281,13 @@ func (p *Peer) SendNewBlockHashes(hashes []common.Hash, numbers []uint64) error 
 // remote peer. If the peer's broadcast queue is full, the event is silently
 // dropped.
 func (p *Peer) AsyncSendNewBlockHash(block *types.Block) {
+	p.Log().Info("Sending new block hash", "peer", p.ID(), "number", block.NumberU64(), "hash", block.Hash())
 	select {
 	case p.queuedBlockAnns <- block:
 		// Mark all the block hash as known, but ensure we don't overflow our limits
 		p.knownBlocks.Add(block.Hash())
 	default:
-		p.Log().Debug("Dropping block announcement", "number", block.NumberU64(), "hash", block.Hash())
+		p.Log().Info("Dropping block announcement", "number", block.NumberU64(), "hash", block.Hash())
 	}
 }
 
@@ -291,6 +295,7 @@ func (p *Peer) AsyncSendNewBlockHash(block *types.Block) {
 func (p *Peer) SendNewBlock(block *types.Block, td *big.Int) error {
 	// Mark all the block hash as known, but ensure we don't overflow our limits
 	p.knownBlocks.Add(block.Hash())
+	p.Log().Info("Sending new block", "number", block.NumberU64(), "hash", block.Hash(), "td", td.String())
 	return p2p.Send(p.rw, NewBlockMsg, &NewBlockPacket{
 		Block: block,
 		TD:    td,
@@ -300,12 +305,15 @@ func (p *Peer) SendNewBlock(block *types.Block, td *big.Int) error {
 // AsyncSendNewBlock queues an entire block for propagation to a remote peer. If
 // the peer's broadcast queue is full, the event is silently dropped.
 func (p *Peer) AsyncSendNewBlock(block *types.Block, td *big.Int) {
+	p.Log().Info("Queuing new block", "number", block.NumberU64(), "hash", block.Hash(), "td", td.String())
 	select {
 	case p.queuedBlocks <- &blockPropagation{block: block, td: td}:
 		// Mark all the block hash as known, but ensure we don't overflow our limits
 		p.knownBlocks.Add(block.Hash())
+		// We add the known blocks so why does the Peer not no and if it doesn't why don't we at somepoint propoegate this.
+		// Is the topology ultimately broken, or are we only sending the head and not historic blocks to this Peer?
 	default:
-		p.Log().Debug("Dropping block propagation", "number", block.NumberU64(), "hash", block.Hash())
+		p.Log().Info("Dropping block propagation", "number", block.NumberU64(), "hash", block.Hash())
 	}
 }
 
@@ -337,7 +345,7 @@ func (p *Peer) ReplyReceiptsRLP(id uint64, receipts []rlp.RawValue) error {
 // RequestOneHeader is a wrapper around the header query functions to fetch a
 // single header. It is used solely by the fetcher.
 func (p *Peer) RequestOneHeader(hash common.Hash, sink chan *Response) (*Request, error) {
-	p.Log().Debug("Fetching single header", "hash", hash)
+	p.Log().Info("Fetching single header", "hash", hash)
 	id := rand.Uint64()
 
 	req := &Request{
@@ -364,7 +372,7 @@ func (p *Peer) RequestOneHeader(hash common.Hash, sink chan *Response) (*Request
 // RequestHeadersByHash fetches a batch of blocks' headers corresponding to the
 // specified header query, based on the hash of an origin block.
 func (p *Peer) RequestHeadersByHash(origin common.Hash, amount int, skip int, reverse bool, sink chan *Response) (*Request, error) {
-	p.Log().Debug("Fetching batch of headers", "count", amount, "fromhash", origin, "skip", skip, "reverse", reverse)
+	p.Log().Info("Fetching batch of headers", "count", amount, "fromhash", origin, "skip", skip, "reverse", reverse)
 	id := rand.Uint64()
 
 	req := &Request{
@@ -391,7 +399,7 @@ func (p *Peer) RequestHeadersByHash(origin common.Hash, amount int, skip int, re
 // RequestHeadersByNumber fetches a batch of blocks' headers corresponding to the
 // specified header query, based on the number of an origin block.
 func (p *Peer) RequestHeadersByNumber(origin uint64, amount int, skip int, reverse bool, sink chan *Response) (*Request, error) {
-	p.Log().Debug("Fetching batch of headers", "count", amount, "fromnum", origin, "skip", skip, "reverse", reverse)
+	p.Log().Info("Fetching batch of headers", "count", amount, "fromnum", origin, "skip", skip, "reverse", reverse)
 	id := rand.Uint64()
 
 	req := &Request{
