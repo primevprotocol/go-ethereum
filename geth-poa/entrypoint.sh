@@ -108,6 +108,7 @@ if [ "$GETH_NODE_TYPE" = "bootnode" ]; then
 		--ws.port="$WS_PORT" \
 		--ws.origins="*" \
 		--ws.api=debug,eth,txpool,net,engine \
+		--syncmode="${GETH_SYNC_MODE}" \
 		--gcmode=full \
 		--state.scheme=path \
 		--db.engine=pebble \
@@ -120,6 +121,7 @@ if [ "$GETH_NODE_TYPE" = "bootnode" ]; then
 		--pprof.addr="$NODE_IP" \
 		--pprof.port=60601 \
 		--nodekey $GETH_DATA_DIR/boot.key \
+		--netrestrict $NET_RESTRICT \
 		"$NAT_FLAG" \
 		--txpool.accountqueue=512 \
 		--rpc.allow-unprotected-txs \
@@ -137,6 +139,7 @@ elif [ "$GETH_NODE_TYPE" = "signer" ]; then
 		$LOG_TAGS_OPTION \
 		--datadir="$GETH_DATA_DIR" \
 		--port="$GETH_PORT" \
+		--syncmode="${GETH_SYNC_MODE}" \
 		--gcmode=full \
 		--state.scheme=path \
 		--db.engine=pebble \
@@ -154,6 +157,7 @@ elif [ "$GETH_NODE_TYPE" = "signer" ]; then
 		--miner.etherbase=$BLOCK_SIGNER_ADDRESS \
 		--allow-insecure-unlock \
 		--nousb \
+		--netrestrict $NET_RESTRICT \
 		--metrics \
 		--metrics.addr="$NODE_IP" \
 		--metrics.port=6060 \
@@ -185,6 +189,7 @@ elif [ "$GETH_NODE_TYPE" = "member" ]; then
 		$LOG_TAGS_OPTION \
 		--datadir="$GETH_DATA_DIR" \
 		--port="$GETH_PORT" \
+		--syncmode="${GETH_SYNC_MODE}" \
 		--gcmode=full \
 		--state.scheme=path \
 		--db.engine=pebble \
