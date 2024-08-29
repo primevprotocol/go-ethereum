@@ -132,6 +132,7 @@ elif [ "$GETH_NODE_TYPE" = "signer" ]; then
 	echo "Starting signer node"
  	echo "BOOTNODE_ENDPOINT is set to: $BOOTNODE_ENDPOINT"
   	GETH_PORT="${GETH_PORT:-30311}"
+	echo "Geth port is set to: $GETH_PORT"
 
 	exec "$GETH_BIN_PATH" \
 		--verbosity="$GETH_VERBOSITY" \
