@@ -516,7 +516,6 @@ func (t *dialTask) run(d *dialScheduler) {
 		d.log.Info("Dial attempt succeeded", "id", t.dest.ID(), "ip", t.dest.IP())
 	}
 }
-}
 
 func (t *dialTask) needResolve() bool {
 	return t.flags&staticDialedConn != 0 && t.dest.IP() == nil
