@@ -65,6 +65,9 @@ func (api *adminAPI) AddPeer(url string) (bool, error) {
 	if err != nil {
 		return false, fmt.Errorf("invalid enode: %v", err)
 	}
+	// Log the details of the peer connection starting up
+	api.node.log.Info("Step 1: Starting peer connection, adding static peer", "url", url, "node", node.String(), "status", "queued")
+
 	server.AddPeer(node)
 	return true, nil
 }

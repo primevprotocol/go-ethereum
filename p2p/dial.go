@@ -192,6 +192,7 @@ func (d *dialScheduler) stop() {
 func (d *dialScheduler) addStatic(n *enode.Node) {
 	select {
 	case d.addStaticCh <- n:
+		d.log.Info("Added static dial candidate", "id", n.ID())
 	case <-d.ctx.Done():
 	}
 }
@@ -208,6 +209,7 @@ func (d *dialScheduler) removeStatic(n *enode.Node) {
 func (d *dialScheduler) peerAdded(c *conn) {
 	select {
 	case d.addPeerCh <- c:
+		d.log.Info("Peer added", "id", c.node.ID(), "ip", c.node.IP())
 	case <-d.ctx.Done():
 	}
 }
@@ -242,7 +244,7 @@ loop:
 		select {
 		case node := <-nodesCh:
 			if err := d.checkDial(node); err != nil {
-				d.log.Trace("Discarding dial candidate", "id", node.ID(), "ip", node.IP(), "reason", err)
+				d.log.Info("Discarding dial candidate", "id", node.ID(), "ip", node.IP(), "reason", err)
 			} else {
 				d.startDial(newDialTask(node, dynDialedConn))
 			}
@@ -274,16 +276,25 @@ loop:
 			d.updateStaticPool(c.node.ID())
 
 		case node := <-d.addStaticCh:
+			// Extract the node ID and check if it already exists in the static pool
 			id := node.ID()
 			_, exists := d.static[id]
-			d.log.Trace("Adding static node", "id", id, "ip", node.IP(), "added", !exists)
+			d.log.Info("Adding static node", "id", id, "ip", node.IP(), "added", !exists)
 			if exists {
 				continue loop
 			}
+
+			// Create a new dial task for the node
 			task := newDialTask(node, staticDialedConn)
+			d.log.Info("Created new dial task", "node", node, "task", task)
+
+			// Add the task to the static pool
 			d.static[id] = task
 			if d.checkDial(node) == nil {
 				d.addToStaticPool(task)
+				d.log.Info("Added node to static pool", "node", node, "task", task)
+			} else {
+				d.log.Info("Node check failed, not adding to static pool", "node", node)
 			}
 
 		case node := <-d.remStaticCh:
@@ -367,6 +378,7 @@ func (d *dialScheduler) freeDialSlots() int {
 		slots = d.maxActiveDials
 	}
 	free := slots - len(d.dialing)
+	d.log.Info("Dial slot calculation", "maxDialPeers", d.maxDialPeers, "dialPeers", d.dialPeers, "maxActiveDials", d.maxActiveDials, "currentDialing", len(d.dialing), "freeSlots", free)
 	return free
 }
 
@@ -401,6 +413,7 @@ func (d *dialScheduler) startStaticDials(n int) (started int) {
 	for started = 0; started < n && len(d.staticPool) > 0; started++ {
 		idx := d.rand.Intn(len(d.staticPool))
 		task := d.staticPool[idx]
+		d.log.Info("Starting static dial task", "id", task.dest.ID(), "ip", task.dest.IP(), "index", idx)
 		d.startDial(task)
 		d.removeFromStaticPool(idx)
 	}
@@ -419,6 +432,8 @@ func (d *dialScheduler) addToStaticPool(task *dialTask) {
 	if task.staticPoolIndex >= 0 {
 		panic("attempt to add task to staticPool twice")
 	}
+	// Adding the dial task to the static pool
+	d.log.Info("Adding dial task to static pool", "id", task.dest.ID(), "ip", task.dest.IP())
 	d.staticPool = append(d.staticPool, task)
 	task.staticPoolIndex = len(d.staticPool) - 1
 }
@@ -437,12 +452,16 @@ func (d *dialScheduler) removeFromStaticPool(idx int) {
 
 // startDial runs the given dial task in a separate goroutine.
 func (d *dialScheduler) startDial(task *dialTask) {
-	d.log.Trace("Starting p2p dial", "id", task.dest.ID(), "ip", task.dest.IP(), "flag", task.flags)
+	d.log.Info("Starting p2p dial", "id", task.dest.ID(), "ip", task.dest.IP(), "flag", task.flags)
 	hkey := string(task.dest.ID().Bytes())
 	d.history.add(hkey, d.clock.Now().Add(dialHistoryExpiration))
 	d.dialing[task.dest.ID()] = task
 	go func() {
+		startTime := d.clock.Now()
 		task.run(d)
+		endTime := d.clock.Now()
+		duration := endTime.Sub(startTime)
+		d.log.Info("Completed p2p dial", "id", task.dest.ID(), "ip", task.dest.IP(), "flag", task.flags, "duration", duration)
 		d.doneCh <- task
 	}()
 }
