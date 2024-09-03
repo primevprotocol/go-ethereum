@@ -486,19 +486,36 @@ type dialError struct {
 }
 
 func (t *dialTask) run(d *dialScheduler) {
-	if t.needResolve() && !t.resolve(d) {
-		return
+	d.log.Info("Dial task started", "id", t.dest.ID(), "ip", t.dest.IP(), "flag", t.flags)
+
+	if t.needResolve() {
+		d.log.Info("Resolving node", "id", t.dest.ID())
+		if !t.resolve(d) {
+			d.log.Info("Node resolution failed", "id", t.dest.ID())
+			return
+		}
+		d.log.Info("Node resolved", "id", t.dest.ID(), "ip", t.dest.IP())
 	}
 
+	d.log.Info("Attempting to dial node", "id", t.dest.ID(), "ip", t.dest.IP())
 	err := t.dial(d, t.dest)
 	if err != nil {
+		d.log.Info("Dial attempt failed", "id", t.dest.ID(), "error", err)
 		// For static nodes, resolve one more time if dialing fails.
 		if _, ok := err.(*dialError); ok && t.flags&staticDialedConn != 0 {
+			d.log.Info("Retrying node resolution after dial failure", "id", t.dest.ID())
 			if t.resolve(d) {
+				d.log.Info("Node resolved on retry", "id", t.dest.ID(), "ip", t.dest.IP())
+				d.log.Info("Retrying dial", "id", t.dest.ID(), "ip", t.dest.IP())
 				t.dial(d, t.dest)
+			} else {
+				d.log.Info("Node resolution failed on retry", "id", t.dest.ID())
 			}
 		}
+	} else {
+		d.log.Info("Dial attempt succeeded", "id", t.dest.ID(), "ip", t.dest.IP())
 	}
+}
 }
 
 func (t *dialTask) needResolve() bool {
