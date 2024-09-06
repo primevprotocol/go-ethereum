@@ -43,24 +43,27 @@ services:
           }
         ]
   
-  sl-node1-keystore:
+  sl-node1:
     build:
       context: ..
-      dockerfile: geth-poa/SignerNode1Dockerfile
+      dockerfile: geth-poa/Dockerfile
     environment:
       - GETH_NODE_TYPE=signer
+      - BLOCK_SIGNER_ADDRESS=0xD95a5Ab26703FdFb89Cf3CBAcF4Ed6099fc86Dc1
+      - BLOCK_SIGNER_PRIVATE_KEY=88c28d328bb7d46eb0b297319bf797d86dc1be39a8ef28049ccc109ac2a76b6a
       - BOOTNODE_ENDPOINT=enode://34a2a388ad31ca37f127bb9ffe93758ee711c5c2277dff6aff2e359bcf2c9509ea55034196788dbd59ed70861f523c1c03d54f1eabb2b4a5c1c129d966fe1e65@172.29.0.98:30301
-      - MEV_COMMIT_GETH_PASSWORD=${MEV_COMMIT_GETH_PASSWORD}
       - NET_RESTRICT=172.29.0.0/16
     networks:
       primev_net:
         ipv4_address: '172.29.0.99'
     ports:
       - 60602:60601
+      - 8547:8545
+
     volumes:
       - geth-data-node1:/data
     profiles:
-      - settlement-keystore
+      - settlement
     labels:
       com.datadoghq.ad.check_names: '["openmetrics"]'
       com.datadoghq.ad.init_configs: '[{}]'
@@ -84,23 +87,67 @@ services:
           }
         ]
 
-  sl-node1:
+  sl-node2:
     build:
       context: ..
       dockerfile: geth-poa/Dockerfile
     environment:
       - GETH_NODE_TYPE=signer
-      - BLOCK_SIGNER_ADDRESS=0xd9cd8E5DE6d55f796D980B818D350C0746C25b97
-      - BLOCK_SIGNER_PRIVATE_KEY=${NODE1_PRIVATE_KEY}
+      - BLOCK_SIGNER_ADDRESS=0x197341B54BFdD7e9b3C41fe31489F248D770d446
+      - BLOCK_SIGNER_PRIVATE_KEY=c7812a26a62386a6c801d2abecef06d2a4003290e49b63422b1f701a6c196e60
       - BOOTNODE_ENDPOINT=enode://34a2a388ad31ca37f127bb9ffe93758ee711c5c2277dff6aff2e359bcf2c9509ea55034196788dbd59ed70861f523c1c03d54f1eabb2b4a5c1c129d966fe1e65@172.29.0.98:30301
       - NET_RESTRICT=172.29.0.0/16
     networks:
       primev_net:
-        ipv4_address: '172.29.0.99'
+        ipv4_address: '172.29.0.100'
     ports:
-      - 60602:60601
+      - 60603:60601
+      - 8548:8545
     volumes:
-      - geth-data-node1:/data
+      - geth-data-node2:/data
+    profiles:
+      - settlement
+    labels:
+      com.datadoghq.ad.check_names: '["openmetrics"]'
+      com.datadoghq.ad.init_configs: '[{}]'
+      com.datadoghq.ad.instances: |
+        [
+          {
+            "openmetrics_endpoint": "http://%%host%%:6060/debug/metrics/prometheus",
+            "namespace": "geth-poa",
+            "metrics": [
+              "txpool*",
+              "trie*",
+              "system*",
+              "state*",
+              "rpc*",
+              "p2p*",
+              "eth*",
+              "chain*",
+              "clique*"
+              "vm*"
+            ]
+          }
+        ]
+
+  sl-node3:
+    build:
+      context: ..
+      dockerfile: geth-poa/Dockerfile
+    environment:
+      - GETH_NODE_TYPE=signer
+      - BLOCK_SIGNER_ADDRESS=0x3dc58867DA7DE04C38Cf936B680AfE0d15E2Dc33
+      - BLOCK_SIGNER_PRIVATE_KEY=8e257d1d4c914a6d011f0b6f14380c41d0a9a3adf20ddb486b340a3e8557c624
+      - BOOTNODE_ENDPOINT=enode://34a2a388ad31ca37f127bb9ffe93758ee711c5c2277dff6aff2e359bcf2c9509ea55034196788dbd59ed70861f523c1c03d54f1eabb2b4a5c1c129d966fe1e65@172.29.0.98:30301
+      - NET_RESTRICT=172.29.0.0/16
+    networks:
+      primev_net:
+        ipv4_address: '172.29.0.101'
+    ports:
+      - 60604:60601
+      - 8549:8545
+    volumes:
+      - geth-data-node3:/data
     profiles:
       - settlement
     labels:
@@ -139,7 +186,7 @@ services:
     ports:
       - 60605:60601
     volumes:
-      - geth-data-node3:/data
+      - geth-data-node4:/data
       - geth-data-backup:/backup
     profiles:
       - settlement
@@ -166,99 +213,18 @@ services:
           }
         ]
 
-  # L1 geth services only used for local dev
-  l1-bootnode:
-    build:
-      context: .
-      dockerfile: ./local-l1/Dockerfile
-    environment:
-      - GETH_NODE_TYPE=bootnode
-      - BOOT_KEY=7b548c1c0fbe80ef1eb0aaec2edf26fd20fb0d758e94948cf6c5f2a486e735f6
-      - NET_RESTRICT=172.14.0.0/24
-    networks:
-      l1_net:
-        ipv4_address: '172.14.0.2'
-    ports:
-      - 9545:8545 # Expose RPC port to host as 9545
-    volumes:
-      - geth-data-l1-bootnode:/data
-    profiles:
-      - local_l1
-
-  l1-node1:
-    build:
-      context: .
-      dockerfile: ./local-l1/Dockerfile
-    environment:
-      - GETH_NODE_TYPE=signer
-      - BLOCK_SIGNER_ADDRESS=0xd9cd8E5DE6d55f796D980B818D350C0746C25b97
-      - BLOCK_SIGNER_PRIVATE_KEY=${NODE1_PRIVATE_KEY}
-      - BOOTNODE_ENDPOINT=enode://34a2a388ad31ca37f127bb9ffe93758ee711c5c2277dff6aff2e359bcf2c9509ea55034196788dbd59ed70861f523c1c03d54f1eabb2b4a5c1c129d966fe1e65@172.14.0.2:30301
-      - NET_RESTRICT=172.14.0.0/24
-    networks:
-      l1_net:
-        ipv4_address: '172.14.0.3'
-    volumes:
-      - geth-data-l1-first-signer:/data
-    profiles:
-      - local_l1
-
-  l1-node2:
-    build:
-      context: .
-      dockerfile: ./local-l1/Dockerfile
-    environment:
-      - GETH_NODE_TYPE=signer
-      - BLOCK_SIGNER_ADDRESS=0x788EBABe5c3dD422Ef92Ca6714A69e2eabcE1Ee4
-      - BLOCK_SIGNER_PRIVATE_KEY=${NODE2_PRIVATE_KEY}
-      - BOOTNODE_ENDPOINT=enode://34a2a388ad31ca37f127bb9ffe93758ee711c5c2277dff6aff2e359bcf2c9509ea55034196788dbd59ed70861f523c1c03d54f1eabb2b4a5c1c129d966fe1e65@172.14.0.2:30301
-      - NET_RESTRICT=172.14.0.0/24
-    networks:
-      l1_net:
-        ipv4_address: '172.14.0.4'
-    volumes:
-      - geth-data-l1-second-signer:/data
-    profiles:
-      - local_l1
-
-  datadog-agent:
-    image: gcr.io/datadoghq/agent:latest
-    restart: always
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock:ro
-      - /proc/:/host/proc/:ro
-      - /sys/fs/cgroup/:/host/sys/fs/cgroup:ro
-    environment:
-      - DD_API_KEY=${DD_KEY}
-      - DD_TAGS=env:test
-      - DD_SITE=datadoghq.com
-      - DD_LOGS_ENABLED=true
-      - DD_LOGS_CONFIG_CONTAINER_COLLECT_ALL=true
-      - DD_CONTAINER_EXCLUDE="name:datadog-agent"
-    ports:
-      - "5000:5000"
-    networks:
-      primev_net:
-        ipv4_address: 172.29.4.24
-    profiles:
-      - prod_agents
-
 networks:
   primev_net:
-    external: true
-  l1_net:
     driver: bridge
     ipam:
       driver: default
       config:
-        - subnet: 172.14.0.0/16
+        - subnet: 172.29.0.0/16
 
 volumes:
   geth-data-bootnode:
   geth-data-node1:
   geth-data-node2:
   geth-data-node3:
+  geth-data-node4:
   geth-data-backup:
-  geth-data-l1-bootnode:
-  geth-data-l1-first-signer:
-  geth-data-l1-second-signer:

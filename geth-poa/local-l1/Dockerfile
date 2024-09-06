@@ -1,12 +1,26 @@
-# Local L1 nodes are NOT built from source
-FROM ethereum/client-go:v1.13.4 as builder
+FROM golang:1.21-alpine AS builder
+
+RUN apk add --no-cache gcc musl-dev linux-headers git make
+
+COPY ../go.mod /go-ethereum/
+COPY ../go.sum /go-ethereum/
+RUN cd /go-ethereum && go mod download
+
+ADD .. /go-ethereum
+RUN cd /go-ethereum && go run build/ci.go install -static ./cmd/geth
+
+FROM alpine:latest
 
 RUN apk add --no-cache jq
 
-# Reuse entrypoint for mev-commit chain
-COPY ./entrypoint.sh /entrypoint.sh
+COPY --from=builder /go-ethereum/build/bin/geth /usr/local/bin/
+
+COPY geth-poa/genesis.json /genesis.json
+
+COPY geth-poa/entrypoint.sh /entrypoint.sh
+
 RUN chmod +x /entrypoint.sh
 
-COPY ./local-l1/genesis.json /genesis.json
+EXPOSE 8545 6060 60601
 
-ENTRYPOINT ["/bin/sh", "/entrypoint.sh"]
+ENTRYPOINT ["/entrypoint.sh"] 
