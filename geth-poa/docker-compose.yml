@@ -7,10 +7,10 @@ services:
     environment:
       - GETH_NODE_TYPE=bootnode
       - BOOT_KEY=7b548c1c0fbe80ef1eb0aaec2edf26fd20fb0d758e94948cf6c5f2a486e735f6
-      - NET_RESTRICT=172.29.0.0/16
+      - NET_RESTRICT=172.28.0.0/0
     networks:
-      primev_net:
-        ipv4_address: '172.29.0.98'
+      internal_primev_net:
+        ipv4_address: '172.28.0.98'
     ports:
       - 8545:8545
       - 8546:8546
@@ -51,11 +51,11 @@ services:
       - GETH_NODE_TYPE=signer
       - BLOCK_SIGNER_ADDRESS=0xD95a5Ab26703FdFb89Cf3CBAcF4Ed6099fc86Dc1
       - BLOCK_SIGNER_PRIVATE_KEY=88c28d328bb7d46eb0b297319bf797d86dc1be39a8ef28049ccc109ac2a76b6a
-      - BOOTNODE_ENDPOINT=enode://34a2a388ad31ca37f127bb9ffe93758ee711c5c2277dff6aff2e359bcf2c9509ea55034196788dbd59ed70861f523c1c03d54f1eabb2b4a5c1c129d966fe1e65@172.29.0.98:30301
-      - NET_RESTRICT=172.29.0.0/16
+      - BOOTNODE_ENDPOINT=enode://34a2a388ad31ca37f127bb9ffe93758ee711c5c2277dff6aff2e359bcf2c9509ea55034196788dbd59ed70861f523c1c03d54f1eabb2b4a5c1c129d966fe1e65@172.28.0.98:30301
+      - NET_RESTRICT=172.28.0.0/0
     networks:
-      primev_net:
-        ipv4_address: '172.29.0.99'
+      internal_primev_net:
+        ipv4_address: '172.28.0.99'
     ports:
       - 60602:60601
       - 8547:8545
@@ -95,11 +95,11 @@ services:
       - GETH_NODE_TYPE=signer
       - BLOCK_SIGNER_ADDRESS=0x197341B54BFdD7e9b3C41fe31489F248D770d446
       - BLOCK_SIGNER_PRIVATE_KEY=c7812a26a62386a6c801d2abecef06d2a4003290e49b63422b1f701a6c196e60
-      - BOOTNODE_ENDPOINT=enode://34a2a388ad31ca37f127bb9ffe93758ee711c5c2277dff6aff2e359bcf2c9509ea55034196788dbd59ed70861f523c1c03d54f1eabb2b4a5c1c129d966fe1e65@172.29.0.98:30301
-      - NET_RESTRICT=172.29.0.0/16
+      - BOOTNODE_ENDPOINT=enode://34a2a388ad31ca37f127bb9ffe93758ee711c5c2277dff6aff2e359bcf2c9509ea55034196788dbd59ed70861f523c1c03d54f1eabb2b4a5c1c129d966fe1e65@172.28.0.98:30301
+      - NET_RESTRICT=172.28.0.0/0
     networks:
-      primev_net:
-        ipv4_address: '172.29.0.100'
+      internal_primev_net:
+        ipv4_address: '172.28.0.100'
     ports:
       - 60603:60601
       - 8548:8545
@@ -138,11 +138,11 @@ services:
       - GETH_NODE_TYPE=signer
       - BLOCK_SIGNER_ADDRESS=0x3dc58867DA7DE04C38Cf936B680AfE0d15E2Dc33
       - BLOCK_SIGNER_PRIVATE_KEY=8e257d1d4c914a6d011f0b6f14380c41d0a9a3adf20ddb486b340a3e8557c624
-      - BOOTNODE_ENDPOINT=enode://34a2a388ad31ca37f127bb9ffe93758ee711c5c2277dff6aff2e359bcf2c9509ea55034196788dbd59ed70861f523c1c03d54f1eabb2b4a5c1c129d966fe1e65@172.29.0.98:30301
-      - NET_RESTRICT=172.29.0.0/16
+      - BOOTNODE_ENDPOINT=enode://34a2a388ad31ca37f127bb9ffe93758ee711c5c2277dff6aff2e359bcf2c9509ea55034196788dbd59ed70861f523c1c03d54f1eabb2b4a5c1c129d966fe1e65@172.28.0.98:30301
+      - NET_RESTRICT=172.28.0.0/0
     networks:
-      primev_net:
-        ipv4_address: '172.29.0.101'
+      internal_primev_net:
+        ipv4_address: '172.28.0.101'
     ports:
       - 60604:60601
       - 8549:8545
@@ -179,10 +179,10 @@ services:
       dockerfile: geth-poa/Dockerfile
     environment:
       - GETH_NODE_TYPE=member
-      - BOOTNODE_ENDPOINT=enode://34a2a388ad31ca37f127bb9ffe93758ee711c5c2277dff6aff2e359bcf2c9509ea55034196788dbd59ed70861f523c1c03d54f1eabb2b4a5c1c129d966fe1e65@172.29.0.98:30301
+      - BOOTNODE_ENDPOINT=enode://34a2a388ad31ca37f127bb9ffe93758ee711c5c2277dff6aff2e359bcf2c9509ea55034196788dbd59ed70861f523c1c03d54f1eabb2b4a5c1c129d966fe1e65@172.28.0.98:30301
     networks:
-      primev_net:
-        ipv4_address: '172.29.0.102'
+      internal_primev_net:
+        ipv4_address: '172.28.0.102'
     ports:
       - 60605:60601
     volumes:
@@ -214,12 +214,12 @@ services:
         ]
 
 networks:
-  primev_net:
+  internal_primev_net:
     driver: bridge
     ipam:
       driver: default
       config:
-        - subnet: 172.29.0.0/16
+        - subnet: 172.28.0.0/16
 
 volumes:
   geth-data-bootnode:
