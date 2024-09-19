@@ -97,6 +97,7 @@ if [ "$GETH_NODE_TYPE" = "bootnode" ]; then
 		$LOG_TAGS_OPTION \
 		--datadir="$GETH_DATA_DIR" \
 		--port 30301 \
+		--discovery.port 30301 \
 		--http \
 		--http.corsdomain="*" \
 		--http.vhosts="*" \
@@ -189,6 +190,7 @@ elif [ "$GETH_NODE_TYPE" = "member" ]; then
 		$LOG_TAGS_OPTION \
 		--datadir="$GETH_DATA_DIR" \
 		--port="$GETH_PORT" \
+		--discovery.port="$GETH_PORT" \
 		--syncmode="${GETH_SYNC_MODE}" \
 		--gcmode=full \
 		--state.scheme=path \
