@@ -184,6 +184,7 @@ func (p *Peer) announceTransactions() {
 		case hashes := <-p.txAnnounce:
 			// If the connection failed, discard all transaction events
 			if failed {
+				p.Log().Debug("Connection failed, discarding transaction announcements")
 				continue
 			}
 			// New batch of transactions to be broadcast, queue them (with cap)

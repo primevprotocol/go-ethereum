@@ -237,6 +237,7 @@ func NewTxFetcherForTests(
 func (f *TxFetcher) Notify(peer string, types []byte, sizes []uint32, hashes []common.Hash) error {
 	// Keep track of all the announced transactions
 	txAnnounceInMeter.Mark(int64(len(hashes)))
+	log.Debug("Received transaction announcement", "peer", peer, "count", len(hashes))
 
 	// Skip any transaction announcements that we already know of, or that we've
 	// previously marked as cheap and discarded. This check is of course racy,
@@ -267,6 +268,7 @@ func (f *TxFetcher) Notify(peer string, types []byte, sizes []uint32, hashes []c
 	}
 	txAnnounceKnownMeter.Mark(duplicate)
 	txAnnounceUnderpricedMeter.Mark(underpriced)
+	log.Debug("Filtered transaction announcement", "peer", peer, "duplicate", duplicate, "underpriced", underpriced, "unknown", len(unknownHashes))
 
 	// If anything's left to announce, push it into the internal loop
 	if len(unknownHashes) == 0 {
@@ -379,6 +381,7 @@ func (f *TxFetcher) Enqueue(peer string, txs []*types.Transaction, direct bool) 
 func (f *TxFetcher) Drop(peer string) error {
 	select {
 	case f.drop <- &txDrop{peer: peer}:
+		log.Debug("Dropped peer", "peer", peer)
 		return nil
 	case <-f.quit:
 		return errTerminated
@@ -906,7 +909,9 @@ func (f *TxFetcher) scheduleFetches(timer *mclock.Timer, timeout chan struct{}, 
 			go func(peer string, hashes []common.Hash) {
 				// Try to fetch the transactions, but in case of a request
 				// failure (e.g. peer disconnected), reschedule the hashes.
+				log.Debug("Requesting transactions", "peer", peer, "count", len(hashes))
 				if err := f.fetchTxs(peer, hashes); err != nil {
+					log.Debug("Transaction request failed", "peer", peer, "err", err)
 					txRequestFailMeter.Mark(int64(len(hashes)))
 					f.Drop(peer)
 				}
