@@ -17,7 +17,10 @@
       "clique": {
         "period": 200,
         "epoch": 30000
-      }
+      },
+      "zeroFeeAddresses": [
+        "0xfA0B0f5d298d28EFE4d35641724141ef19C05684"
+      ]
     },
     "nonce": "0x0",
     "timestamp": "0x18E0A4E0D22",

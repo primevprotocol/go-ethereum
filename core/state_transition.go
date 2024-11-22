@@ -464,7 +464,13 @@ func (st *StateTransition) TransitionDb() (*ExecutionResult, error) {
 		// Send both base and prio fee to preconf.eth address
 		treasuryAccount := common.HexToAddress("0xfA0B0f5d298d28EFE4d35641724141ef19C05684")
 		bothFees := baseFee.Add(baseFee, priorityFee)
-		st.state.AddBalance(treasuryAccount, bothFees)
+
+		// @shaspitz do we note want to also remove the fee from the sender account, even when we increment the treasury account?
+		if st.evm.ChainConfig().IsZeroFee(sender.Address()) {
+			st.state.AddBalance(sender.Address(), bothFees)
+		} else {
+			st.state.AddBalance(treasuryAccount, bothFees)
+		}
 	}
 
 	return &ExecutionResult{
