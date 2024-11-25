@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"math"
 	"math/big"
+	"slices"
 
 	"github.com/ethereum/go-ethereum/common"
 	cmath "github.com/ethereum/go-ethereum/common/math"
@@ -466,7 +467,7 @@ func (st *StateTransition) TransitionDb() (*ExecutionResult, error) {
 		bothFees := baseFee.Add(baseFee, priorityFee)
 
 		// @shaspitz do we note want to also remove the fee from the sender account, even when we increment the treasury account?
-		if st.evm.ChainConfig().IsZeroFee(sender.Address()) {
+		if slices.Contains(st.evm.Config.ZeroFeeAddresses, sender.Address()) {
 			st.state.AddBalance(sender.Address(), bothFees)
 		} else {
 			st.state.AddBalance(treasuryAccount, bothFees)
