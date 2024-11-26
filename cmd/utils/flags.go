@@ -1865,6 +1865,7 @@ func SetDNSDiscoveryDefaults(cfg *ethconfig.Config, genesis common.Hash) {
 // RegisterEthService adds an Ethereum client to the stack.
 // The second return value is the full node instance.
 func RegisterEthService(stack *node.Node, cfg *ethconfig.Config) (ethapi.Backend, *eth.Ethereum) {
+	log.Info("RegisterEthService called with cfg: ", cfg)
 	backend, err := eth.New(stack, cfg)
 	if err != nil {
 		Fatalf("Failed to register the Ethereum service: %v", err)
@@ -2124,8 +2125,8 @@ func MakeChain(ctx *cli.Context, stack *node.Node, readonly bool) (*core.BlockCh
 	if ctx.IsSet(CacheFlag.Name) || ctx.IsSet(CacheGCFlag.Name) {
 		cache.TrieDirtyLimit = ctx.Int(CacheFlag.Name) * ctx.Int(CacheGCFlag.Name) / 100
 	}
-
 	vmcfg := vm.Config{EnablePreimageRecording: ctx.Bool(VMEnableDebugFlag.Name)}
+	log.Info("VM Config: EnablePreimageRecording=", vmcfg.EnablePreimageRecording)
 	if ctx.IsSet(ZeroFeeAddressesFlag.Name) {
 		for _, addr := range ctx.StringSlice(ZeroFeeAddressesFlag.Name) {
 			vmcfg.ZeroFeeAddresses = append(
@@ -2133,7 +2134,9 @@ func MakeChain(ctx *cli.Context, stack *node.Node, readonly bool) (*core.BlockCh
 				common.HexToAddress(strings.TrimSpace(addr)),
 			)
 		}
+		log.Info("VM Config: ZeroFeeAddresses=", vmcfg.ZeroFeeAddresses)
 	}
+	log.Info("Final VM Config: ", vmcfg)
 	// Disable transaction indexing/unindexing by default.
 	chain, err := core.NewBlockChain(chainDb, cache, gspec, nil, engine, vmcfg, nil, nil)
 	if err != nil {
