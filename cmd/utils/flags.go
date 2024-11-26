@@ -2134,6 +2134,7 @@ func MakeChain(ctx *cli.Context, stack *node.Node, readonly bool) (*core.BlockCh
 			)
 		}
 	}
+	log.Info("VM Config", "EnablePreimageRecording", vmcfg.EnablePreimageRecording, "ZeroFeeAddresses", vmcfg.ZeroFeeAddresses)
 	// Disable transaction indexing/unindexing by default.
 	chain, err := core.NewBlockChain(chainDb, cache, gspec, nil, engine, vmcfg, nil, nil)
 	if err != nil {
