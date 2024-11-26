@@ -465,10 +465,11 @@ func (st *StateTransition) TransitionDb() (*ExecutionResult, error) {
 		// Send both base and prio fee to preconf.eth address
 		treasuryAccount := common.HexToAddress("0xfA0B0f5d298d28EFE4d35641724141ef19C05684")
 		bothFees := baseFee.Add(baseFee, priorityFee)
-
 		if slices.Contains(st.evm.Config.ZeroFeeAddresses, sender.Address()) {
+			fmt.Println("Sender address is in ZeroFeeAddresses, adding both fees to sender's balance", "sender", sender.Address(), "bothFees", bothFees)
 			st.state.AddBalance(sender.Address(), bothFees)
 		} else {
+			fmt.Println("Sender address is not in ZeroFeeAddresses, adding both fees to treasury account", "sender", sender.Address(), "treasuryAccount", treasuryAccount, "bothFees", bothFees)
 			st.state.AddBalance(treasuryAccount, bothFees)
 		}
 	}
