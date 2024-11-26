@@ -2132,7 +2132,6 @@ func MakeChain(ctx *cli.Context, stack *node.Node, readonly bool) (*core.BlockCh
 				common.HexToAddress(strings.TrimSpace(addr)),
 			)
 		}
-		log.Info("VM Config: ZeroFeeAddresses=", vmcfg.ZeroFeeAddresses)
 	}
 	// Disable transaction indexing/unindexing by default.
 	chain, err := core.NewBlockChain(chainDb, cache, gspec, nil, engine, vmcfg, nil, nil)
