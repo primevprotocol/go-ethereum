@@ -467,7 +467,6 @@ func (st *StateTransition) TransitionDb() (*ExecutionResult, error) {
 		bothFees := baseFee.Add(baseFee, priorityFee)
 
 		if slices.Contains(st.evm.Config.ZeroFeeAddresses, sender.Address()) {
-			fmt.Printf("Zero fee address %v\n", sender.Address().Hex())
 			st.state.AddBalance(sender.Address(), bothFees)
 		} else {
 			st.state.AddBalance(treasuryAccount, bothFees)

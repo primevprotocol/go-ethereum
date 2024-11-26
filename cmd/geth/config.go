@@ -185,7 +185,6 @@ func makeFullNode(ctx *cli.Context) (*node.Node, ethapi.Backend) {
 			)
 		}
 	}
-	log.Info("Final Eth Config: ", cfg.Eth)
 	backend, eth := utils.RegisterEthService(stack, &cfg.Eth)
 
 	// Create gauge with geth system and build information
