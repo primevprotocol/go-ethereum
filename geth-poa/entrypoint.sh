@@ -95,7 +95,7 @@ fi
 
 if [ "$GETH_NODE_TYPE" = "bootnode" ]; then
 	echo "Starting bootnode"
-	echo "$NODE_KEY" > $GETH_DATA_DIR/nodekey
+	# echo "$NODE_KEY" > $GETH_DATA_DIR/nodekey
 
 	exec "$GETH_BIN_PATH" \
 		--verbosity="$GETH_VERBOSITY" \
@@ -127,7 +127,7 @@ if [ "$GETH_NODE_TYPE" = "bootnode" ]; then
 		--pprof \
 		--pprof.addr="$NODE_IP" \
 		--pprof.port=60601 \
-		--nodekey $GETH_DATA_DIR/nodekey \
+		# --nodekey $GETH_DATA_DIR/nodekey \
 		--netrestrict $NET_RESTRICT \
 		"$NAT_FLAG" \
 		--txpool.accountqueue=512 \
@@ -137,7 +137,7 @@ if [ "$GETH_NODE_TYPE" = "bootnode" ]; then
 
 elif [ "$GETH_NODE_TYPE" = "signer" ]; then
 	echo "Starting signer node"
-	echo "$NODE_KEY" > $GETH_DATA_DIR/nodekey
+	# echo "$NODE_KEY" > $GETH_DATA_DIR/nodekey
 
 	echo "BOOTNODE_ENDPOINT is set to: $BOOTNODE_ENDPOINT"
 	GETH_PORT="${GETH_PORT:-30311}"
@@ -167,7 +167,7 @@ elif [ "$GETH_NODE_TYPE" = "signer" ]; then
 		--miner.etherbase=$BLOCK_SIGNER_ADDRESS \
 		--allow-insecure-unlock \
 		--nousb \
-		--nodekey $GETH_DATA_DIR/nodekey \
+		# --nodekey $GETH_DATA_DIR/nodekey \
 		--netrestrict $NET_RESTRICT \
 		--metrics \
 		--metrics.addr="$NODE_IP" \
@@ -191,7 +191,7 @@ elif [ "$GETH_NODE_TYPE" = "signer" ]; then
 
 elif [ "$GETH_NODE_TYPE" = "member" ]; then
 	echo "Starting member node"
-	echo "$NODE_KEY" > $GETH_DATA_DIR/nodekey
+	# echo "$NODE_KEY" > $GETH_DATA_DIR/nodekey
 	echo "BOOTNODE_ENDPOINT is set to: $BOOTNODE_ENDPOINT"
 	GETH_PORT="${GETH_PORT:-30311}"
 
@@ -215,7 +215,7 @@ elif [ "$GETH_NODE_TYPE" = "member" ]; then
 		--bootnodes $BOOTNODE_ENDPOINT \
 		--networkid=$CHAIN_ID \
 		--password="$GETH_DATA_DIR"/password \
-		--nodekey $GETH_DATA_DIR/nodekey \
+		# --nodekey $GETH_DATA_DIR/nodekey \
 		--metrics \
 		--metrics.addr="$NODE_IP" \
 		--metrics.port=6060 \

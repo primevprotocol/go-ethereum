@@ -7,7 +7,7 @@ up-prod:
 
 up-dev:
 	@if [ ! -f .env ]; then echo "Error: .env file not found. Please populate the .env file before running this command."; exit 1; fi
-	DD_KEY=nil docker compose --profile settlement up -d --build
+	DD_KEY=nil docker compose --profile settlement up --build
 
 up-dev-keystore:
 	@if [ ! -f .env ]; then echo "Error: .env file not found. Please populate the .env file before running this command."; exit 1; fi
